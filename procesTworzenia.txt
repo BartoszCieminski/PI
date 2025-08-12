@@ -1,0 +1,4 @@
+1.1 utworzenie bazy danych w supabase
+1. stworzenie backendu do rejestracji i logowania
+2. stworzenie frontendu do rejestracji i logowania
+3. połączenie frontendu z backendem

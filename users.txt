@@ -1,0 +1,17 @@
+ADMINISTRATOR
+Imie: Admin
+Nazwisko: Admin
+Email: hadowi5148@cronack.com
+Hasło: Admin1
+
+KLIENT
+Imie: Klient
+Nazwisko: Siłowni
+Email: ronaxe2351@cotasen.com
+Hasło: Klient1
+
+TRENER
+Imie: Trener
+Nazwisko: Testowy
+Email: pubjepcv5g@pngrise.com
+Hasło: Trener1
