@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
-// Twoje komponenty:
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import About from './pages/About';
@@ -13,6 +12,12 @@ import TrainerDashboard from './pages/TrainerDashboard';
 import ClientDashboard from './pages/ClientDashboard';
 import LoginForm from './components/LoginForm';
 import RegisterForm from './components/RegisterForm';
+import AdminTrainings from './pages/AdminTrainings';
+import AdminEditTraining from './pages/AdminEditTraining';
+import AdminAddTraining from './pages/AdminAddTraining'; // ✅ Nowy import
+import AdminAddRoom from './pages/AdminAddRoom'; // ⬅️ nowy import
+import AdminRooms from './pages/AdminRooms';
+import AdminEditRoom from './pages/AdminEditRoom';
 
 function App() {
   return (
@@ -27,6 +32,7 @@ function App() {
           <Route path="/login" element={<LoginForm />} />
           <Route path="/register" element={<RegisterForm />} />
 
+          {/* Admin */}
           <Route
             path="/admin"
             element={
@@ -36,6 +42,58 @@ function App() {
             }
           />
           <Route
+            path="/admin/trainings"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminTrainings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/edit/:id"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminEditTraining />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/add-training" // ✅ Nowa ścieżka
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminAddTraining />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/add-room"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminAddRoom />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/rooms"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminRooms />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/edit-room/:id"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminEditRoom />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Trainer */}
+          <Route
             path="/trainer"
             element={
               <ProtectedRoute requiredRole="trainer">
@@ -43,6 +101,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Client */}
           <Route
             path="/client"
             element={

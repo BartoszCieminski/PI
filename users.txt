@@ -4,14 +4,39 @@ Nazwisko: Admin
 Email: hadowi5148@cronack.com
 Hasło: Admin1
 
+TRENER
+Imie: Krzysztof
+Nazwisko: Mazur
+Email: pubjepcv5g@pngrise.com
+Hasło: Trener1
+
+TRENER
+Imie: Julia
+Nazwisko: Lewandowska
+Email: min96577@jioso.com
+Hasło: Trener1
+
+TRENER
+Imie: Tomasz
+Nazwisko: Zieliński
+Email: xqy26171@jioso.com
+Hasło: Trener1
+
 KLIENT
-Imie: Klient
-Nazwisko: Siłowni
+Imie: Magdalena
+Nazwisko: Wójcik
 Email: ronaxe2351@cotasen.com
 Hasło: Klient1
 
-TRENER
-Imie: Trener
-Nazwisko: Testowy
-Email: pubjepcv5g@pngrise.com
-Hasło: Trener1
+KLIENT
+Imie: Piotr
+Nazwisko: Nowak
+Email: tcs78806@toaik.com
+Hasło: Klient1
+
+KLIENT
+Imie: Paweł
+Nazwisko: Szymański
+Email: ivs92834@toaik.com
+Hasło: Klient1
+

@@ -1,24 +1,48 @@
 import React from 'react';
 
-interface Training {
-  id: string; // UUID z bazy
-  name: string;
-  trainer: string;
-  time: string;
-}
-
 interface TrainingCardProps {
-  training: Training;
-  onBook: (id: string) => void; // <- zmienione na string
+  training: {
+    id: string;
+    name: string;
+    trainer: string;
+    time: string;        // np. 15:00
+    endTime: string;     // np. 16:30
+    dayLabel: string;    // np. "Wtorek"
+    spots: string;
+    alreadyBooked?: boolean;
+  };
+  onBook?: (id: string) => void;
 }
 
 const TrainingCard: React.FC<TrainingCardProps> = ({ training, onBook }) => {
+  const noSpotsLeft = training.spots.startsWith('0/');
+
   return (
-    <div style={{ border: '1px solid #ccc', padding: '20px', borderRadius: '10px', width: '200px' }}>
-      <h4>{training.name}</h4>
+    <div
+      style={{
+        border: '1px solid #ccc',
+        borderRadius: '8px',
+        padding: '15px',
+        minWidth: '250px',
+      }}
+    >
+      <h3>{training.name}</h3>
       <p>Trener: {training.trainer}</p>
-      <p>Godzina: {training.time}</p>
-      <button onClick={() => onBook(training.id)}>Zapisz się</button>
+      <p>Dzień tygodnia: {training.dayLabel}</p>
+      <p>Godzina rozpoczęcia: {training.time}</p>
+      <p>Godzina zakończenia: {training.endTime}</p>
+      <p>Dostępne miejsca: {training.spots}</p>
+
+      {training.alreadyBooked ? (
+        <p style={{ color: 'green', fontWeight: 'bold' }}>
+          Jesteś już zapisany na te zajęcia. <br />
+          <a href="/client">Zobacz w panelu klienta</a>
+        </p>
+      ) : noSpotsLeft ? (
+        <p style={{ color: 'red', fontWeight: 'bold' }}>Brak dostępnych miejsc</p>
+      ) : (
+        onBook && <button onClick={() => onBook(training.id)}>Zapisz się</button>
+      )}
     </div>
   );
 };

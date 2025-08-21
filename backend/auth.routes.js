@@ -18,7 +18,13 @@ router.post('/register', async (req, res) => {
 
     const { error: profileError } = await supabase
       .from('profiles')
-      .insert([{ id: user.user.id, role, first_name, last_name }]);
+      .insert([{ 
+        id: user.user.id, 
+        email: user.user.email, 
+        role, 
+        first_name, 
+        last_name 
+      }]);
 
     if (profileError) return res.status(400).json({ error: profileError.message });
 
