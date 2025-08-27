@@ -13,6 +13,7 @@ const Navbar: React.FC = () => {
       <Link to="/classes">Zajęcia</Link>
       <Link to="/about">O nas</Link>
       <Link to="/contact">Kontakt</Link>
+      <Link to="/calendar">Kalendarz</Link>
 
       {/* Linki do paneli (opcjonalnie warunkowe) */}
       {role === 'admin' && <Link to="/admin">Panel administratora</Link>}

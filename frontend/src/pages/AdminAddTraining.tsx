@@ -36,6 +36,7 @@ const AdminAddTraining: React.FC = () => {
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [busyRooms, setBusyRooms] = useState<string[]>([]);
+  const [busyTrainers, setBusyTrainers] = useState<string[]>([]); // 🔹 nowy stan
 
   const token = localStorage.getItem('token');
   const navigate = useNavigate();
@@ -58,6 +59,7 @@ const AdminAddTraining: React.FC = () => {
       .catch(() => setMessage('Błąd pobierania listy sal'));
   }, [token]);
 
+  // ✅ sprawdzanie zajętości sal
   useEffect(() => {
     if (!token || !dayOfWeek || !timeOfDay || !endTime) return;
 
@@ -74,8 +76,35 @@ const AdminAddTraining: React.FC = () => {
       .catch(() => setMessage('Błąd sprawdzania dostępności sal'));
   }, [dayOfWeek, timeOfDay, endTime, token]);
 
+  // ✅ NOWE: sprawdzanie zajętości trenera (analogicznie do sal)
+  useEffect(() => {
+    if (!token || !dayOfWeek || !timeOfDay || !endTime) return;
+
+    fetch(`${import.meta.env.VITE_API_URL}/api/trainings/check-trainer-availability`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ day_of_week: dayOfWeek, time_of_day: timeOfDay, end_time: endTime })
+    })
+      .then(res => res.json())
+      .then(data => setBusyTrainers(data.busyTrainerIds || []))
+      .catch(() => setMessage('Błąd sprawdzania dostępności trenera'));
+  }, [dayOfWeek, timeOfDay, endTime, token]);
+
+  // (opcjonalnie) jeśli wybrany trener stał się zajęty po zmianie godzin — wyczyść pole i pokaż info
+  useEffect(() => {
+    if (trainerId && busyTrainers.includes(trainerId)) {
+      setMessage('Wybrany trener jest w tym czasie zajęty. Wybierz innego.');
+      setTrainerId('');
+    }
+  }, [busyTrainers, trainerId]);
+
   const handleAddTraining = async (e: React.FormEvent) => {
     e.preventDefault();
+    setMessage('');
+
     if (!token) {
       setMessage('Brak tokena. Zaloguj się ponownie.');
       return;
@@ -116,24 +145,41 @@ const AdminAddTraining: React.FC = () => {
       <form onSubmit={handleAddTraining} style={{ marginTop: '20px' }}>
         <div>
           <label>Nazwa treningu:</label>
-          <input type="text" value={name} onChange={e => setName(e.target.value)} required />
+          <input
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            required
+          />
         </div>
 
         <div>
           <label>Trener:</label>
-          <select value={trainerId} onChange={e => setTrainerId(e.target.value)} required>
+          <select
+            value={trainerId}
+            onChange={e => setTrainerId(e.target.value)}
+            required
+          >
             <option value="">Wybierz trenera</option>
-            {trainers.map(t => (
-              <option key={t.id} value={t.id}>
-                {t.first_name} {t.last_name}
-              </option>
-            ))}
+            {trainers.map(t => {
+              const isBusy = busyTrainers.includes(t.id);
+              return (
+                <option key={t.id} value={t.id} disabled={isBusy}>
+                  {t.first_name} {t.last_name}
+                  {isBusy ? ' - ten trener jest w tym czasie zajęty' : ''}
+                </option>
+              );
+            })}
           </select>
         </div>
 
         <div>
           <label>Dzień tygodnia:</label>
-          <select value={dayOfWeek} onChange={e => setDayOfWeek(e.target.value)} required>
+          <select
+            value={dayOfWeek}
+            onChange={e => setDayOfWeek(e.target.value)}
+            required
+          >
             <option value="">Wybierz dzień</option>
             {daysOfWeek.map(d => (
               <option key={d.value} value={d.value}>{d.label}</option>
@@ -143,23 +189,38 @@ const AdminAddTraining: React.FC = () => {
 
         <div>
           <label>Godzina rozpoczęcia:</label>
-          <input type="time" value={timeOfDay} onChange={e => setTimeOfDay(e.target.value)} required />
+          <input
+            type="time"
+            value={timeOfDay}
+            onChange={e => setTimeOfDay(e.target.value)}
+            required
+          />
         </div>
 
         <div>
           <label>Godzina zakończenia:</label>
-          <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} required />
+          <input
+            type="time"
+            value={endTime}
+            onChange={e => setEndTime(e.target.value)}
+            required
+          />
         </div>
 
         <div>
           <label>Sala:</label>
-          <select value={roomId} onChange={e => setRoomId(e.target.value)} required>
+          <select
+            value={roomId}
+            onChange={e => setRoomId(e.target.value)}
+            required
+          >
             <option value="">Wybierz salę</option>
             {rooms.map(r => {
               const isBusy = busyRooms.includes(r.id);
               return (
                 <option key={r.id} value={r.id} disabled={isBusy}>
-                  {r.name} (pojemność: {r.capacity}) {isBusy ? ' - ta sala jest w tym czasie zajęta' : ''}
+                  {r.name} (pojemność: {r.capacity})
+                  {isBusy ? ' - ta sala jest w tym czasie zajęta' : ''}
                 </option>
               );
             })}
@@ -167,7 +228,11 @@ const AdminAddTraining: React.FC = () => {
         </div>
 
         <button type="submit">Zapisz</button>
-        <button type="button" onClick={() => navigate('/admin')} style={{ marginLeft: '10px' }}>
+        <button
+          type="button"
+          onClick={() => navigate('/admin')}
+          style={{ marginLeft: '10px' }}
+        >
           Anuluj
         </button>
       </form>

@@ -1,0 +1,39 @@
+/* wrapper z poziomym scrollem */
+.fc-scroll-x {
+  width: 100%;
+  overflow-x: auto;           /* ⬅ przewijanie w poziomie */
+  overflow-y: hidden;
+}
+
+/* duże minimum szerokości całej siatki */
+.fc-inner-wide {
+  min-width: 2000px;          /* ⬅ ZWIĘKSZ do 2400/3000px jeśli chcesz „mega szeroko” */
+}
+
+/* powiększ trochę wiersze godzin (bardziej czytelnie) */
+.fc .fc-timegrid-slot {
+  height: 56px;               /* 50–64px daje wygodę przy wielu eventach */
+}
+
+/* kolumny czasu — trochę większa typografia */
+.fc .fc-timegrid-axis-cushion {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* nagłówki zasobów (Sala 1, Sala 2, ...) */
+.fc .fc-col-header-cell-cushion {
+  padding: 8px 12px;
+  font-weight: 700;
+}
+
+/* minimalna szerokość pojedynczej kolumny dnia dla zasobu */
+.fc .fc-timegrid-body .fc-timegrid-col {
+  min-width: 260px;           /* ⬅️ Każda kolumna dnia nie będzie się „ściskać” */
+}
+
+/* zawijanie tytułów eventów (żeby nie uciekał tekst) */
+.fc .fc-event-title, .fc .fc-event-main {
+  white-space: normal;
+  line-height: 1.25;
+}

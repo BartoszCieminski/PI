@@ -1,4 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import TrainingCard from '../components/TrainingCard';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 interface Training {
   id: string;
@@ -6,10 +9,9 @@ interface Training {
   day_of_week: string;
   time_of_day: string;
   end_time: string;
-  duration: number;
-  booked_count: number;
   trainer: { first_name: string; last_name: string };
   room: { name: string; capacity: number };
+  bookings: { id: string; user_id: string }[];
 }
 
 const dayMap: Record<string, string> = {
@@ -22,31 +24,44 @@ const dayMap: Record<string, string> = {
   sunday: 'Niedziela',
 };
 
-const dayOrder = Object.keys(dayMap);
+const dayOrder: Record<string, number> = {
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+  sunday: 7,
+};
 
 const Classes: React.FC = () => {
   const [trainings, setTrainings] = useState<Training[]>([]);
-  const [filtered, setFiltered] = useState<Training[]>([]);
-  const [dayFilter, setDayFilter] = useState('');
-  const [trainerFilter, setTrainerFilter] = useState('');
-  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const navigate = useNavigate();
+  const { token, role, userId } = useAuth();
 
   const fetchTrainings = async () => {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/trainings`);
-      const data = await res.json();
+      if (!res.ok) throw new Error('Nie udało się pobrać treningów');
+      const data: Training[] = await res.json();
 
-      const sorted = data.sort((a: Training, b: Training) => {
-        const dayDiff = dayOrder.indexOf(a.day_of_week) - dayOrder.indexOf(b.day_of_week);
-        return dayDiff !== 0
-          ? dayDiff
-          : a.time_of_day.localeCompare(b.time_of_day);
+      const sorted = data.sort((a, b) => {
+        const dayA = dayOrder[a.day_of_week];
+        const dayB = dayOrder[b.day_of_week];
+
+        if (dayA !== dayB) return dayA - dayB;
+        return a.time_of_day.localeCompare(b.time_of_day);
       });
 
       setTrainings(sorted);
-      setFiltered(sorted);
-    } catch {
-      setMessage('Błąd pobierania treningów');
+    } catch (err) {
+      setError('Błąd podczas pobierania treningów');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -54,81 +69,76 @@ const Classes: React.FC = () => {
     fetchTrainings();
   }, []);
 
-  useEffect(() => {
-    let filtered = trainings;
-
-    if (dayFilter) {
-      filtered = filtered.filter(t => t.day_of_week === dayFilter);
+  const handleBookTraining = async (id: string) => {
+    if (!token) {
+      navigate('/login');
+      return;
     }
 
-    if (trainerFilter) {
-      filtered = filtered.filter(
-        t =>
-          `${t.trainer.first_name} ${t.trainer.last_name}`.toLowerCase() ===
-          trainerFilter.toLowerCase()
-      );
+    if (role !== 'client') {
+      alert(`Twoja rola to "${role}". Tylko użytkownik może zapisać się na trening.`);
+      return;
     }
 
-    setFiltered(filtered);
-  }, [dayFilter, trainerFilter, trainings]);
+    const confirmed = window.confirm('Czy na pewno chcesz zapisać się na ten trening?');
+    if (!confirmed) return;
 
-  const resetFilters = () => {
-    setDayFilter('');
-    setTrainerFilter('');
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ training_id: id }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setMessage('Zapisano na trening!');
+        fetchTrainings();
+      } else {
+        setMessage(data.error || 'Nie udało się zapisać');
+      }
+    } catch {
+      setMessage('Błąd połączenia z serwerem');
+    }
   };
 
-  const uniqueTrainers = Array.from(
-    new Set(trainings.map(t => `${t.trainer.first_name} ${t.trainer.last_name}`))
-  );
+  if (loading) return <p>Ładowanie treningów...</p>;
+  if (error) return <p>{error}</p>;
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h1 style={{ textAlign: 'center' }}>Witamy w Fitness Club</h1>
-      <p style={{ textAlign: 'center', marginBottom: '30px' }}>
-        <strong>Lista dostępnych treningów</strong>
-      </p>
-
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', justifyContent: 'center' }}>
-        <select value={dayFilter} onChange={e => setDayFilter(e.target.value)}>
-          <option value="">Filtruj po dniu tygodnia</option>
-          {Object.entries(dayMap).map(([value, label]) => (
-            <option key={value} value={value}>{label}</option>
-          ))}
-        </select>
-
-        <select value={trainerFilter} onChange={e => setTrainerFilter(e.target.value)}>
-          <option value="">Filtruj po trenerze</option>
-          {uniqueTrainers.map(name => (
-            <option key={name} value={name}>{name}</option>
-          ))}
-        </select>
-
-        <button onClick={resetFilters}>Resetuj filtry</button>
-      </div>
-
+    <div style={{ textAlign: 'center' }}>
+      <h1>Witamy w Fitness Club</h1>
+      <h3>Lista dostępnych treningów</h3>
       {message && <p>{message}</p>}
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', justifyContent: 'center' }}>
-        {filtered.map(t => {
-          const available = t.room.capacity - t.booked_count;
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
+        {trainings.map((training) => {
+          const booked = training.bookings?.length || 0;
+          const capacity = training.room?.capacity || 0;
+          const available = Math.max(capacity - booked, 0);
+          const spots = `${available}/${capacity}`;
+
+          const alreadyBooked = training.bookings.some(b => b.user_id === userId);
+          const canBook = role === 'client' && available > 0 && !alreadyBooked;
+
           return (
-            <div
-              key={t.id}
-              style={{
-                border: '1px solid gray',
-                padding: '15px',
-                borderRadius: '8px',
-                width: '220px',
-                textAlign: 'center',
+            <TrainingCard
+              key={training.id}
+              training={{
+                id: training.id,
+                name: training.name,
+                trainer: `${training.trainer?.first_name || ''} ${training.trainer?.last_name || ''}`,
+                time: training.time_of_day,
+                endTime: training.end_time,
+                dayLabel: dayMap[training.day_of_week],
+                spots,
+                alreadyBooked,
               }}
-            >
-              <p><strong>{t.name}</strong></p>
-              <p>Trener: {t.trainer.first_name} {t.trainer.last_name}</p>
-              <p>Dzień tygodnia: {dayMap[t.day_of_week]}</p>
-              <p>Godzina rozpoczęcia: {t.time_of_day}</p>
-              <p>Godzina zakończenia: {t.end_time}</p>
-              <p>Dostępne miejsca: {available}/{t.room.capacity}</p>
-            </div>
+              onBook={canBook ? handleBookTraining : undefined}
+            />
           );
         })}
       </div>

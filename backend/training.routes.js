@@ -38,7 +38,6 @@ router.get('/', async (req, res) => {
     if (trainer) query = query.eq('trainer_id', trainer);
 
     const { data, error } = await query;
-
     if (error) return res.status(400).json({ error: error.message });
 
     const enriched = data.map((training) => ({
@@ -77,7 +76,6 @@ router.get('/with-clients', requireRole(['trainer']), async (req, res) => {
     .eq('trainer_id', trainerId);
 
   if (error) return res.status(400).json({ error: error.message });
-
   res.json(data);
 });
 
@@ -90,7 +88,6 @@ router.get('/trainers', requireRole(['admin']), async (req, res) => {
       .eq('role', 'trainer');
 
     if (error) return res.status(400).json({ error: error.message });
-
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: 'Błąd serwera' });
@@ -100,28 +97,24 @@ router.get('/trainers', requireRole(['admin']), async (req, res) => {
 // 🏟️ Lista sal z liczbą przypisanych treningów
 router.get('/rooms', requireRole(['admin']), async (req, res) => {
   try {
-    // Pobierz wszystkie sale
     const { data: rooms, error: roomsError } = await supabase
       .from('rooms')
       .select('id, name, capacity');
 
     if (roomsError) return res.status(400).json({ error: roomsError.message });
 
-    // Pobierz wszystkie treningi wraz z przypisaną salą
     const { data: trainings, error: trainingsError } = await supabase
       .from('trainings')
       .select('id, room_id');
 
     if (trainingsError) return res.status(400).json({ error: trainingsError.message });
 
-    // Zlicz przypisane treningi dla każdej sali
     const trainingCountMap = trainings.reduce((acc, t) => {
       if (!t.room_id) return acc;
       acc[t.room_id] = (acc[t.room_id] || 0) + 1;
       return acc;
     }, {});
 
-    // Wzbogacenie danych sali o liczbę przypisanych treningów
     const enrichedRooms = rooms.map((room) => ({
       ...room,
       assignedTrainingsCount: trainingCountMap[room.id] || 0,
@@ -148,7 +141,6 @@ router.post('/rooms', requireRole(['admin']), async (req, res) => {
     .select();
 
   if (error) return res.status(400).json({ error: error.message });
-
   res.json({ message: 'Sala dodana pomyślnie', room: data[0] });
 });
 
@@ -167,7 +159,6 @@ router.put('/rooms/:id', requireRole(['admin']), async (req, res) => {
     .eq('id', id);
 
   if (error) return res.status(400).json({ error: error.message });
-
   res.json({ message: 'Sala zaktualizowana' });
 });
 
@@ -175,12 +166,11 @@ router.put('/rooms/:id', requireRole(['admin']), async (req, res) => {
 router.delete('/rooms/:id', requireRole(['admin']), async (req, res) => {
   const { id } = req.params;
 
-  // Sprawdź, czy sala jest używana w jakimkolwiek treningu
   const { data: usedTrainings, error: usageError } = await supabase
     .from('trainings')
     .select('id')
     .eq('room_id', id)
-    .limit(1); // wystarczy 1 wynik, żeby wiedzieć że jest używana
+    .limit(1);
 
   if (usageError) {
     return res.status(500).json({ error: 'Błąd sprawdzania powiązań sali' });
@@ -190,17 +180,14 @@ router.delete('/rooms/:id', requireRole(['admin']), async (req, res) => {
     return res.status(400).json({ error: 'Nie można usunąć sali, która jest przypisana do treningów' });
   }
 
-  // Jeśli sala nie jest używana, usuń ją
   const { error } = await supabase
     .from('rooms')
     .delete()
     .eq('id', id);
 
   if (error) return res.status(400).json({ error: error.message });
-
   res.json({ message: 'Sala usunięta pomyślnie' });
 });
-
 
 // 🔍 Pobierz jedną salę po ID
 router.get('/rooms/:id', requireRole(['admin']), async (req, res) => {
@@ -213,7 +200,6 @@ router.get('/rooms/:id', requireRole(['admin']), async (req, res) => {
     .single();
 
   if (error) return res.status(400).json({ error: error.message });
-
   res.json(data);
 });
 
@@ -240,7 +226,6 @@ router.post('/', requireRole(['trainer', 'admin']), async (req, res) => {
       .select();
 
     if (error) return res.status(400).json({ error: error.message });
-
     res.json({ message: 'Trening dodany pomyślnie', training: data[0] });
   } catch (err) {
     res.status(500).json({ error: 'Błąd serwera' });
@@ -273,7 +258,6 @@ router.post('/check-room-availability', requireRole(['admin']), async (req, res)
       const [eh, em] = end.split(':').map(Number);
       const startMin = sh * 60 + sm;
       const endMin = eh * 60 + em;
-
       return newStart < endMin && newEnd > startMin; // kolizja
     })
     .map(t => t.room_id);
@@ -281,7 +265,7 @@ router.post('/check-room-availability', requireRole(['admin']), async (req, res)
   res.json({ busyRoomIds });
 });
 
-// ✏️ Edycja treningu
+// ✏️ Edycja treningu (z walidacją kolizji trenera)
 router.put('/:id', requireRole(['admin']), async (req, res) => {
   const trainingId = req.params.id;
   const { name, trainer_id, day_of_week, time_of_day, end_time, room_id } = req.body;
@@ -292,6 +276,31 @@ router.put('/:id', requireRole(['admin']), async (req, res) => {
 
   if (duration <= 0) {
     return res.status(400).json({ error: 'Czas zakończenia musi być późniejszy niż rozpoczęcia' });
+  }
+
+  // ⛔️ Walidacja kolizji trenera (pomijamy edytowany trening)
+  const { data: sameDayByTrainer, error: trainerQErr } = await supabase
+    .from('trainings')
+    .select('id, time_of_day, end_time')
+    .eq('trainer_id', trainer_id)
+    .eq('day_of_week', day_of_week)
+    .neq('id', trainingId);
+
+  if (trainerQErr) return res.status(400).json({ error: trainerQErr.message });
+
+  const newStart = sh * 60 + sm;
+  const newEnd = eh * 60 + em;
+
+  const hasTrainerConflict = (sameDayByTrainer || []).some(({ time_of_day: s, end_time: e }) => {
+    const [sh2, sm2] = s.split(':').map(Number);
+    const [eh2, em2] = e.split(':').map(Number);
+    const startMin = sh2 * 60 + sm2;
+    const endMin = eh2 * 60 + em2;
+    return newStart < endMin && newEnd > startMin;
+  });
+
+  if (hasTrainerConflict) {
+    return res.status(400).json({ error: 'Trener jest w tym czasie zajęty.' });
   }
 
   const { error } = await supabase
@@ -308,7 +317,6 @@ router.put('/:id', requireRole(['admin']), async (req, res) => {
     .eq('id', trainingId);
 
   if (error) return res.status(400).json({ error: error.message });
-
   res.json({ message: 'Trening zaktualizowany' });
 });
 
@@ -323,8 +331,81 @@ router.get('/:id', requireRole(['admin']), async (req, res) => {
     .single();
 
   if (error) return res.status(400).json({ error: error.message });
-
   res.json(data);
+});
+
+// ❌ Usuwanie treningu
+router.delete('/:id', requireRole(['admin']), async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const { data: bookings, error: bookingError } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('training_id', id)
+      .limit(1);
+
+    if (bookingError) {
+      return res.status(500).json({ error: 'Błąd sprawdzania zapisów' });
+    }
+
+    if (bookings.length > 0) {
+      return res.status(400).json({ error: 'Nie można usunąć treningu z zapisanymi klientami' });
+    }
+
+    const { error } = await supabase
+      .from('trainings')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    res.json({ message: 'Trening usunięty pomyślnie' });
+  } catch (err) {
+    res.status(500).json({ error: 'Błąd serwera' });
+  }
+});
+
+// 📆 Sprawdzenie dostępności trenerów (z pominięciem edytowanego treningu)
+router.post('/check-trainer-availability', requireRole(['admin']), async (req, res) => {
+  const { day_of_week, time_of_day, end_time, ignore_training_id } = req.body;
+
+  if (!day_of_week || !time_of_day || !end_time) {
+    return res.status(400).json({ error: 'Brakuje wymaganych danych.' });
+  }
+
+  let query = supabase
+    .from('trainings')
+    .select('id, trainer_id, time_of_day, end_time')
+    .eq('day_of_week', day_of_week);
+
+  if (ignore_training_id) {
+    query = query.neq('id', ignore_training_id);
+  }
+
+  const { data, error } = await query;
+  if (error) return res.status(400).json({ error: error.message });
+
+  const [newStartH, newStartM] = time_of_day.split(':').map(Number);
+  const [newEndH, newEndM] = end_time.split(':').map(Number);
+  const newStart = newStartH * 60 + newStartM;
+  const newEnd = newEndH * 60 + newEndM;
+
+  const busyTrainerIds = Array.from(new Set(
+    data
+      .filter(({ time_of_day: start, end_time: end }) => {
+        const [sh, sm] = start.split(':').map(Number);
+        const [eh, em] = end.split(':').map(Number);
+        const startMin = sh * 60 + sm;
+        const endMin = eh * 60 + em;
+        return newStart < endMin && newEnd > startMin; // kolizja
+      })
+      .map(t => t.trainer_id)
+  ));
+
+  res.json({ busyTrainerIds });
 });
 
 export default router;

@@ -18,6 +18,7 @@ import AdminAddTraining from './pages/AdminAddTraining'; // ✅ Nowy import
 import AdminAddRoom from './pages/AdminAddRoom'; // ⬅️ nowy import
 import AdminRooms from './pages/AdminRooms';
 import AdminEditRoom from './pages/AdminEditRoom';
+import FullCalendarView from './components/FullCalendarView';
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
           <Route path="/classes" element={<Classes />} />
           <Route path="/login" element={<LoginForm />} />
           <Route path="/register" element={<RegisterForm />} />
+          <Route path="/calendar" element={<FullCalendarView />} />
 
           {/* Admin */}
           <Route
