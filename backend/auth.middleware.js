@@ -1,18 +1,15 @@
 // backend/auth.middleware.js
 import supabase from './supabase.js';
 
-export const requireRole = (roles) => {
+export const requireRole = (allowedRoles) => {
   return async (req, res, next) => {
     try {
       const token = req.headers.authorization?.split(' ')[1];
-
       if (!token) return res.status(401).json({ error: 'Brak tokena autoryzacyjnego' });
 
       const { data: { user }, error } = await supabase.auth.getUser(token);
-
       if (error || !user) return res.status(401).json({ error: 'Nieprawidłowy token' });
 
-      // Pobierz profil użytkownika z tabeli profiles
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
@@ -20,14 +17,12 @@ export const requireRole = (roles) => {
         .single();
 
       if (profileError || !profile) return res.status(403).json({ error: 'Brak dostępu' });
+      if (!allowedRoles.includes(profile.role)) return res.status(403).json({ error: 'Brak odpowiednich uprawnień' });
 
-      if (!roles.includes(profile.role)) {
-        return res.status(403).json({ error: 'Brak odpowiednich uprawnień' });
-      }
-
-      req.user = { ...user, role: profile.role };
+      // udostępniamy id/email + rolę do dalszych handlerów
+      req.user = { id: user.id, email: user.email, role: profile.role };
       next();
-    } catch (err) {
+    } catch {
       res.status(500).json({ error: 'Błąd serwera' });
     }
   };

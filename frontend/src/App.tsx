@@ -9,6 +9,7 @@ import Contact from './pages/Contact';
 import Classes from './pages/Classes';
 import AdminDashboard from './pages/AdminDashboard';
 import TrainerDashboard from './pages/TrainerDashboard';
+import TrainerMyTrainings from './pages/TrainerMyTrainings';
 import ClientDashboard from './pages/ClientDashboard';
 import LoginForm from './components/LoginForm';
 import RegisterForm from './components/RegisterForm';
@@ -19,6 +20,10 @@ import AdminAddRoom from './pages/AdminAddRoom'; // ⬅️ nowy import
 import AdminRooms from './pages/AdminRooms';
 import AdminEditRoom from './pages/AdminEditRoom';
 import FullCalendarView from './components/FullCalendarView';
+import ClientBookings from './pages/ClientBookings'; // ⬅️ import nowej strony
+import ClientProfile from './pages/ClientProfile';
+import ClientCalendar from './pages/ClientCalendar';
+import TrainerHoursReport from './pages/TrainerHoursReport';
 
 function App() {
   return (
@@ -60,14 +65,13 @@ function App() {
             }
           />
           <Route
-            path="/admin/add-training" // ✅ Nowa ścieżka
+            path="/admin/add-training"
             element={
               <ProtectedRoute requiredRole="admin">
                 <AdminAddTraining />
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/admin/add-room"
             element={
@@ -76,7 +80,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/admin/rooms"
             element={
@@ -103,6 +106,23 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/trainer/my-trainings"
+            element={
+              <ProtectedRoute requiredRole="trainer">
+                <TrainerMyTrainings />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/trainer/hours-report"
+            element={
+              <ProtectedRoute requiredRole="trainer">
+                <TrainerHoursReport />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Client */}
           <Route
@@ -110,6 +130,30 @@ function App() {
             element={
               <ProtectedRoute requiredRole="client">
                 <ClientDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/client/bookings"
+            element={
+              <ProtectedRoute requiredRole="client">
+                <ClientBookings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/client/profile"
+            element={
+              <ProtectedRoute requiredRole="client">
+                <ClientProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/client/calendar"
+            element={
+              <ProtectedRoute requiredRole="client">
+                <ClientCalendar />
               </ProtectedRoute>
             }
           />

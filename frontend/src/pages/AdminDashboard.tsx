@@ -1,6 +1,8 @@
 // src/pages/AdminDashboard.tsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import AdminExportReportButton from '../components/AdminDownloadTrainingsButton';
+import AdminDownloadClientsButton from '../components/AdminDownloadClientsButton';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -48,9 +50,8 @@ const AdminDashboard: React.FC = () => {
       <button onClick={() => navigate('/admin/rooms')} style={{ marginLeft: 10 }}>Edytuj lub usuń salę</button>
 
       {/* NOWY PRZYCISK */}
-      <button onClick={downloadClientsXlsx} style={{ marginLeft: 10 }}>
-        Pobierz klientów (XLSX)
-      </button>
+      <AdminDownloadClientsButton/>
+      <AdminExportReportButton/>
     </div>
   );
 };
